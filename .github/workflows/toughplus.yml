@@ -1,0 +1,81 @@
+name: Tough-plusio additive gate
+
+on:
+  push:
+    branches: [toughplus]
+  pull_request:
+    branches: [toughplus]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_OPTIONAL_LOCKS: '0'
+      PYVISTA_OFF_SCREEN: 'true'
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      TOUGH_HYDRATE_REFERENCE_DIR: ''
+      TOUGH_HYDRATE_OUTPUT_DIR: ''
+    steps:
+      - name: Full checkout with LFS fixtures
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Python 3.11 baseline runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify manifest-pinned objects from full checkout
+        run: |
+          python - <<'PY'
+          import subprocess
+          import tomllib
+          from pathlib import Path
+          data = tomllib.loads(Path('scripts/additive_manifest.toml').read_text())
+          objects = {data['upstream']['sha'], data['base']['sha'], data['packaging']['rename_sha']}
+          for topic in data['topics']:
+              objects.update(topic[field] for field in ('sha', 'parent_sha', 'merge_sha'))
+          for sha in sorted(objects):
+              subprocess.run(['git', 'cat-file', '-e', sha + '^{commit}'], check=True)
+              subprocess.run(['git', 'merge-base', '--is-ancestor', sha, 'HEAD'], check=True)
+          print(f'All {len(objects)} manifest-pinned commits are in the history of HEAD')
+          PY
+      - name: Recreate the topic and base branches from their pins
+        run: |
+          python - <<'PY'
+          import subprocess
+          import tomllib
+          from pathlib import Path
+          data = tomllib.loads(Path('scripts/additive_manifest.toml').read_text())
+          refs = {data['base']['branch']: data['base']['sha']}
+          refs.update({topic['branch']: topic['sha'] for topic in data['topics']})
+          for branch, sha in refs.items():
+              subprocess.run(['git', 'update-ref', f'refs/heads/{branch}', sha], check=True)
+          print(f'{len(refs)} local branches at their pinned commits')
+          PY
+      - name: Install pinned build prerequisites
+        run: python -m pip install --no-build-isolation -c docs/toughplus/baseline/constraints.txt 'setuptools>=77' wheel
+      - name: Install fork and pytest
+        run: python -m pip install --no-build-isolation -c docs/toughplus/baseline/constraints.txt '.[full]' pytest
+      - name: Check additive scope and ancestry
+        run: python scripts/check_additive.py
+      - name: Policy tests in temporary clones
+        run: python docs/toughplus/baseline/test_check_additive.py
+      - name: T+H and all fix regressions
+        run: python docs/toughplus/baseline/run_tests.py extensions --output-dir "$RUNNER_TEMP/toughplus-results"
+      - name: Compare all official nodeids with reviewed baseline
+        run: python docs/toughplus/baseline/run_tests.py upstream --output-dir "$RUNNER_TEMP/toughplus-results"
+      - name: Preserve per-node outcomes and import provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toughplus-nodeid-results
+          path: ${{ runner.temp }}/toughplus-results
+          if-no-files-found: ignore

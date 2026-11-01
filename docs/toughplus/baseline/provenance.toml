@@ -1,0 +1,10 @@
+# Immutable source of the reviewed result set; runtime constraints are separate.
+upstream_sha = "8f8b4fd723e2c63a74aaaedf44ee0a4b7f835f16"
+base_sha = "eb7e3bcfb6039af0953ad20ff3cbec24e0159f74"
+python = "3.11.15"
+platform = "Linux"
+collected = 344
+passed = 294
+failed = 30
+skipped = 20
+results_sha256 = "edffaf84cd89a3bc592367b55442da598a7c394917bbcc8e8f13d19a36fab1ef"

@@ -1,4 +1,4 @@
-from . import column, csv, tecplot
+from . import column, csv, tecplot, tough_hydrate
 from ._helpers import read, register
 
 

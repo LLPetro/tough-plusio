@@ -1,0 +1,14 @@
+# Runtime used for the reviewed nodeid baseline (Python 3.11).
+numpy==2.4.6
+pyvista==0.48.4
+pyvista-gridder==0.6.0
+vtk==9.4.2
+pandas==3.0.6
+matplotlib==3.11.1
+scipy==1.17.1
+meshio==5.3.5
+h5py==3.16.0
+pytest==9.1.1
+psutil==7.2.2
+tqdm==4.70.1
+setuptools==79.0.1

@@ -7,3 +7,4 @@ User Guide
 
    installation
    input
+   tough_hydrate
