@@ -42,9 +42,9 @@ def structured_grid(
     """
     from .. import Mesh
 
-    dx = np.asarray(dx)
-    dy = np.asarray(dy)
-    dz = np.asarray(dz) if dz is not None else np.zeros(1)
+    dx = np.asarray(dx, dtype=float)
+    dy = np.asarray(dy, dtype=float)
+    dz = np.asarray(dz, dtype=float) if dz is not None else np.zeros(1)
     origin = origin if origin is not None else (0.0, 0.0, -dz.sum())
 
     if dx.ndim != 1 or dy.ndim != 1 or dz.ndim != 1:
@@ -136,8 +136,8 @@ def cylindric_grid(
     """
     from .. import CylindricMesh
 
-    dr = np.asarray(dr)
-    dz = np.asarray(dz)
+    dr = np.asarray(dr, dtype=float)
+    dz = np.asarray(dz, dtype=float)
     origin_z = origin_z if origin_z is not None else -dz.sum()
 
     if dr.ndim != 1 or dz.ndim != 1:

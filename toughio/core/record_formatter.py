@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -234,15 +235,15 @@ class RecordFormatter:
 
 
 def to_float(s: str) -> float:
-    """Convert variable string to float."""
+    """Read E/D exponents and Fortran exponents printed without E."""
+    normalized = s.strip().replace("d", "e").replace("D", "e")
     try:
-        return float(s.replace("d", "e"))
-
+        return float(normalized)
     except ValueError:
-        # It's probably something like "0.0001-001"
-        significand, exponent = s[:-4], s[-4:]
-
-        return float(f"{significand}e{exponent}")
+        match = re.fullmatch(r"([+-]?(?:\d+(?:\.\d*)?|\.\d+))([+-]\d{2,3})", normalized)
+        if match is None:
+            raise
+        return float(f"{match.group(1)}e{match.group(2)}")
 
 
 tokens = {

@@ -244,7 +244,9 @@ def run(
 
     # TOUGH command
     if not docker and not wsl:
-        exec = f'"{pathlib.Path(exec).absolute()}"'
+        resolved = shutil.which(exec) or exec
+        if pathlib.Path(resolved).is_file():
+            exec = f'"{pathlib.Path(resolved).absolute()}"'
 
     if command is not None:
         cmd = command(exec, str(input_filename.name), str(output_filename))

@@ -152,7 +152,12 @@ class ElementOutput(Output):
                 return {k: v[islice] for k, v in self.data.items()}
 
         elif np.ndim(islice) == 1:
-            islice = [self.index(i) if isinstance(i, str) else i for i in islice]
+            if np.asarray(islice).dtype.kind == "b":
+                if len(islice) != self.n_data:
+                    raise ValueError("mask must match output rows")
+                islice = np.flatnonzero(islice)
+            else:
+                islice = [self.index(i) if isinstance(i, str) else i for i in islice]
 
         else:
             raise ValueError()
@@ -240,10 +245,20 @@ class ConnectionOutput(Output):
             else:
                 return {k: v[islice] for k, v in self.data.items()}
 
-        elif np.shape(islice) == (2,):
-            islice = self.index(*islice)
-
-            return {k: v[islice] for k, v in self.data.items()}
+        elif np.ndim(islice) == 1:
+            if len(islice) == 2 and all(isinstance(value, str) for value in islice):
+                index = self.index(*islice)
+                return {key: value[index] for key, value in self.data.items()}
+            if np.asarray(islice).dtype.kind == "b":
+                if len(islice) != self.n_data:
+                    raise ValueError("mask must match output rows")
+                islice = np.flatnonzero(islice)
+            elif all(isinstance(value, (int, np.integer)) for value in islice):
+                islice = np.asarray(islice, dtype=int)
+            else:
+                raise ValueError(
+                    "expected integer indices or one connection label pair"
+                )
 
         elif np.ndim(islice) == 2:
             islice = [self.index(*i) if np.ndim(i) == 1 else i for i in islice]

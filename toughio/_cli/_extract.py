@@ -21,7 +21,7 @@ format_to_ext = {
 def extract(argv=None):
     import os
 
-    from .. import read_mesh
+    from .. import read_input
 
     parser = _get_parser()
     args = parser.parse_args(argv)
@@ -37,8 +37,8 @@ def extract(argv=None):
         raise ValueError(f"MESH file '{args.mesh}' not found.")
 
     # Read MESH and extract X, Y and Z
-    parameters = read_mesh(
-        args.mesh, file_format="tough", label_length=args.label_length
+    parameters = read_input(
+        args.mesh, file_format="tough", blocks=["ELEME"], label_length=args.label_length
     )
     if "elements" not in parameters:
         raise ValueError(f"Invalid MESH file '{args.mesh}'.")
