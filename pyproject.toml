@@ -3,9 +3,9 @@ requires = ["setuptools >= 77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "toughio"
+name = "toughplusio"
 dynamic = ["version"]
-description = "Pre- and post-processing Python library for TOUGH"
+description = "toughio fork with TOUGH+HYDRATE v1.5 input, output and mesh support"
 readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.9"
 license = "BSD-3-Clause"
@@ -49,9 +49,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/keurfonluu/toughio"
-Code = "https://github.com/keurfonluu/toughio"
-Issues = "https://github.com/keurfonluu/toughio/issues"
+Homepage = "https://github.com/LLPetro/tough-plusio"
+Code = "https://github.com/LLPetro/tough-plusio"
+Issues = "https://github.com/LLPetro/tough-plusio/issues"
+Upstream = "https://github.com/keurfonluu/toughio"
 
 [project.entry-points.console_scripts]
 toughio-export = "toughio._cli:export"
