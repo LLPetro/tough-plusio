@@ -90,3 +90,23 @@ def test_run_windows(exec, workers, docker, wsl, cmd):
 def test_run_unix(exec, workers, docker, cmd):
     cmd = cmd.replace("PLACEHOLDER", f"-e LOCAL_USER_ID={os.getuid()}")
     test_run(exec, workers, docker, False, cmd)
+
+
+@pytest.mark.skipif(
+    platform.system().startswith("Win"), reason="requires executable shell script"
+)
+def test_native_runner_resolves_executable_from_path(tmp_path, monkeypatch):
+    monkeypatch.setattr(toughio._run, "_check_exec", True)
+    program = tmp_path / "bin" / "native-test-solver"
+    program.parent.mkdir()
+    program.write_text("#!/bin/sh\nprintf 'native solver completed\\n'\n")
+    program.chmod(0o755)
+    monkeypatch.setenv("PATH", str(program.parent) + os.pathsep + os.environ["PATH"])
+    source = tmp_path / "input.in"
+    source.write_text("Native runner\nENDCY\n")
+    working = tmp_path / "run"
+    result = toughio.run(
+        source, exec=program.name, simulator="tough2", working_dir=working, silent=True
+    )
+    assert result.returncode == 0
+    assert (working / "input.out").read_text().strip() == "native solver completed"

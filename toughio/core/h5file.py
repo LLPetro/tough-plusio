@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import getpass
 import os
 import pathlib
 from typing import TYPE_CHECKING
@@ -10,7 +11,7 @@ import pvgridder as pvg
 import pyvista as pv
 
 from .history_output import HistoryOutput
-from .mesh import Mesh
+from .mesh import BaseMesh, CylindricMesh, Mesh
 from .output import ConnectionOutput, ElementOutput
 
 
@@ -76,7 +77,7 @@ class H5File:
             # Add version info
             node = self._get_node("VersionInfo")
             self._dump_data("version", "1.0", node=node)
-            self._dump_data("user", os.getlogin(), node=node)
+            self._dump_data("user", getpass.getuser(), node=node)
             self._dump_data(
                 "date", str(datetime.datetime.now().astimezone().isoformat()), node=node
             )
@@ -101,7 +102,7 @@ class H5File:
 
     def dump(
         self,
-        obj: Mesh | ConnectionOutput | ElementOutput | HistoryOutput,
+        obj: BaseMesh | ConnectionOutput | ElementOutput | HistoryOutput,
     ) -> None:
         """
         Dump a mesh or an output to container.
@@ -133,7 +134,7 @@ class H5File:
         except AttributeError:
             name = type(obj)
 
-        if isinstance(obj, Mesh):
+        if isinstance(obj, BaseMesh):
             # /Mesh
             node = self._get_node("Mesh")
 
@@ -143,6 +144,8 @@ class H5File:
                 else "UnstructuredGrid"
             )
             self._dump_data("type", type_, node=node)
+
+            self._dump_data("mesh_class", obj.__class__.__name__, node=node)
 
             # /Mesh/pyvista
             node = self._get_node("pyvista", node=node)
@@ -245,7 +248,7 @@ class H5File:
         else:
             raise ValueError(f"could not dump {name} to file")
 
-    def load_mesh(self) -> Mesh:
+    def load_mesh(self) -> BaseMesh:
         """
         Load mesh.
 
@@ -274,7 +277,13 @@ class H5File:
             celltypes = self._load_data("Mesh/pyvista/celltypes")
             mesh = pv.UnstructuredGrid(cells, celltypes, points)
 
-        mesh = Mesh(mesh, metadata=metadata)
+        mesh_class = self._load_data("Mesh/mesh_class")
+        if mesh_class is None or mesh_class == "":
+            mesh_class = "Mesh"
+        classes = {"Mesh": Mesh, "CylindricMesh": CylindricMesh}
+        if mesh_class not in classes:
+            raise ValueError(f"unknown stored mesh class: {mesh_class!r}")
+        mesh = classes[mesh_class](mesh, metadata=metadata)
         mesh.add_data(data)
 
         return mesh
@@ -663,9 +672,15 @@ class H5File:
         elif isinstance(data, (list, tuple, np.ndarray)):
             node.create_dataset(
                 name,
-                data=data,
+                data=np.asarray(data, dtype=h5py.string_dtype("utf-8"))
+                if np.asarray(data).dtype.kind == "U"
+                else data,
                 compression=self.compression,
-                compression_opts=self.compression_opts,
+                **(
+                    {"compression_opts": self.compression_opts}
+                    if self.compression == "gzip"
+                    else {}
+                ),
             )
 
         else:

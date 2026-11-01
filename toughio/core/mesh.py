@@ -1207,8 +1207,17 @@ class BaseMesh(ABC):
         poly = pvg.extract_cell_geometry(
             self.pyvista, remove_ghost_cells=True
         ).compute_cell_sizes(length=True, area=True, volume=False)
-        mask = (poly.cell_data["vtkOriginalCellIds"] >= 0).all(axis=1)
-        connections = poly.cell_data["vtkOriginalCellIds"][mask]
+        cell_ids = np.asarray(poly.cell_data["vtkOriginalCellIds"])
+        # Without internal faces, gridder returns boundary IDs as a 1D array.
+        if cell_ids.ndim != 2 or not np.any((cell_ids >= 0).all(axis=1)):
+            return (
+                np.empty((0, 2), dtype=int),
+                np.empty((0, 3)),
+                np.empty((0, 3)),
+                np.empty(0),
+            )
+        mask = (cell_ids >= 0).all(axis=1)
+        connections = cell_ids[mask]
         centers = poly.cell_centers(vertex=False).points[mask]
 
         if self.ndim == 3:
